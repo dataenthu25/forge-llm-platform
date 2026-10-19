@@ -1,0 +1,25 @@
+# Overrides for a GPU node (used from Phase 4 on AKS).
+image:
+  repository: vllm/vllm-openai
+  tag: v0.31.0
+model:
+  name: Qwen/Qwen2.5-1.5B-Instruct
+  servedName: qwen2.5-1.5b-instruct
+  maxModelLen: 4096
+  dtype: auto
+env:
+  VLLM_CPU_KVCACHE_SPACE: null  # null removes a key set in values.yaml
+extraArgs: ["--gpu-memory-utilization", "0.90", "--enable-prefix-caching"]
+gpu:
+  enabled: true
+  count: 1
+resources:
+  requests:
+    cpu: "4"
+    memory: 16Gi
+  limits:
+    memory: 24Gi
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule

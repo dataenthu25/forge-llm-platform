@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vllm-pool
+description: A pool of vLLM inference servers exposing an OpenAI-compatible API
+type: application
+version: 0.1.0
+appVersion: "v0.31.0"

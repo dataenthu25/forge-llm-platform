@@ -1,0 +1,78 @@
+# Values for one "pool" of identical vLLM servers serving one model.
+# Defaults are tuned for a laptop / CI runner with no GPU.
+# See docs/learn/02-vllm-on-kubernetes.md for why each setting exists.
+
+replicaCount: 1
+
+image:
+  # CPU build of vLLM. For a GPU node use vllm/vllm-openai (see values-gpu.yaml).
+  repository: vllm/vllm-openai-cpu
+  tag: v0.31.0
+  pullPolicy: IfNotPresent
+
+model:
+  # Hugging Face model id that vLLM downloads on first start.
+  name: Qwen/Qwen2.5-0.5B-Instruct
+  # The name clients send in the "model" field of a request.
+  servedName: qwen2.5-0.5b-instruct
+  # Max tokens (prompt + answer) per request. Smaller = less KV-cache memory.
+  maxModelLen: 2048
+  # Data type for weights. bfloat16 works on CPU and modern GPUs.
+  dtype: bfloat16
+
+# Extra flags passed straight to vLLM, e.g. ["--enable-prefix-caching"].
+extraArgs: []
+
+# Name of an existing Secret with key HF_TOKEN, needed only for gated models (e.g. Llama).
+hfTokenSecret: ""
+
+env:
+  # CPU only: how many GB of RAM vLLM may use for the KV cache.
+  VLLM_CPU_KVCACHE_SPACE: "2"
+
+resources:
+  requests:
+    cpu: "2"
+    memory: 6Gi
+  limits:
+    memory: 10Gi
+
+gpu:
+  enabled: false
+  count: 1
+
+# Model weights are cached on a volume so restarts don't re-download them.
+modelCache:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+
+# vLLM uses shared memory between its processes; the container default (64Mi) is too small.
+shmSize: 2Gi
+
+service:
+  type: ClusterIP
+  port: 8000
+
+probes:
+  # Startup can take minutes (download + load weights). Allow up to 30 min before giving up.
+  startup:
+    periodSeconds: 10
+    failureThreshold: 180
+  readiness:
+    periodSeconds: 5
+    failureThreshold: 3
+  liveness:
+    periodSeconds: 15
+    failureThreshold: 4
+
+# Seconds to keep serving in-flight requests after the pod is told to stop.
+drainSeconds: 30
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

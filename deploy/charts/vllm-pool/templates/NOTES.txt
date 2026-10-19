@@ -1,0 +1,6 @@
+vLLM pool "{{ include "vllm-pool.fullname" . }}" is starting.
+The first start downloads {{ .Values.model.name }} and can take several minutes.
+
+Watch it:   kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }} -w
+Reach it:   kubectl port-forward svc/{{ include "vllm-pool.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+Test it:    curl localhost:{{ .Values.service.port }}/v1/models
