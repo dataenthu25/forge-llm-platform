@@ -1,0 +1,18 @@
+# Lab 0: run vLLM on your laptop with plain Docker, no Kubernetes yet.
+services:
+  vllm:
+    image: vllm/vllm-openai-cpu:v0.31.0
+    command:
+      - --model=Qwen/Qwen2.5-0.5B-Instruct
+      - --served-model-name=qwen2.5-0.5b-instruct
+      - --max-model-len=2048
+      - --dtype=bfloat16
+    environment:
+      VLLM_CPU_KVCACHE_SPACE: "2"
+    ports:
+      - "8000:8000"
+    shm_size: 2g
+    volumes:
+      - hf-cache:/root/.cache/huggingface   # keep downloaded weights between runs
+volumes:
+  hf-cache:
