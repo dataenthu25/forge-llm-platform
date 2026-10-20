@@ -46,7 +46,8 @@ jobs:
         run: |
           make port-forward >/tmp/pf.log 2>&1 &
           sleep 5
-          make smoke
+          # The runner has no GPU and few cores, so keep the answer short and allow a long first request.
+          make smoke SMOKE_ARGS="--max-tokens 16 --timeout 900"
       - name: Debug info on failure
         if: failure()
         run: |
