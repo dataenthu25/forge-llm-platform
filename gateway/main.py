@@ -1,13 +1,15 @@
+import json
+import os
+
 import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-VLLM_URL = "http://localhost:8000"
+load_dotenv()
 
-API_KEYS = {
-    "sk-team-a-123": "team-a",
-    "sk-team-b-456": "team-b",
-}
+VLLM_URL = os.getenv("VLLM_URL", "http://localhost:8000")
+API_KEYS: dict[str, str] = json.loads(os.getenv("API_KEYS", "{}"))
 
 # Running totals per team. Kept in memory for now; Postgres comes later.
 USAGE: dict[str, dict[str, int]] = {}
@@ -26,7 +28,9 @@ def check_api_key(authorization: str | None) -> str:
 
 
 def record_usage(team: str, usage: dict) -> None:
-    totals = USAGE.setdefault(team, {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0})
+    totals = USAGE.setdefault(
+        team, {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0}
+    )
     totals["requests"] += 1
     totals["prompt_tokens"] += usage.get("prompt_tokens", 0)
     totals["completion_tokens"] += usage.get("completion_tokens", 0)
@@ -47,9 +51,14 @@ async def chat(request: Request, authorization: str | None = Header(default=None
     team = check_api_key(authorization)
     body = await request.json()
     async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(f"{VLLM_URL}/v1/chat/completions", json=body)
+        try:
+            resp = await client.post(f"{VLLM_URL}/v1/chat/completions", json=body)
+        except httpx.HTTPError as exc:
+            raise HTTPException(
+                status_code=502, detail="Model server unavailable"
+            ) from exc
     data = resp.json()
     if resp.status_code == 200:
         record_usage(team, data.get("usage", {}))
-        print(f"{team} used {data['usage']['total_tokens']} tokens")
+        print(f"{team} used {data.get('usage', {}).get('total_tokens', 0)} tokens")
     return JSONResponse(data, status_code=resp.status_code)
