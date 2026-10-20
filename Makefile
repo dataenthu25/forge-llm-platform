@@ -5,6 +5,7 @@ RELEASE      ?= chat
 CHART        := deploy/charts/vllm-pool
 VALUES       ?= $(CHART)/values.yaml
 LOCAL_PORT   ?= 8000
+SMOKE_ARGS   ?=
 
 .PHONY: help tools cluster-up cluster-down deploy wait port-forward smoke logs undeploy lint
 
@@ -31,7 +32,7 @@ port-forward: ## Expose the pool on localhost:$(LOCAL_PORT)
 	kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE)-vllm-pool $(LOCAL_PORT):8000
 
 smoke: ## Run the smoke test against localhost:$(LOCAL_PORT)
-	uv run scripts/smoke_test.py --base-url http://localhost:$(LOCAL_PORT)/v1
+	uv run scripts/smoke_test.py --base-url http://localhost:$(LOCAL_PORT)/v1 $(SMOKE_ARGS)
 
 logs: ## Tail vLLM logs
 	kubectl -n $(NAMESPACE) logs -f deploy/$(RELEASE)-vllm-pool

@@ -30,12 +30,14 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--api-key", default="not-needed-yet")
     p.add_argument("--prompt", default="In two sentences, what is Kubernetes?")
     p.add_argument("--max-tokens", type=int, default=64)
+    # CPU-only CI runners are slow, and the first request also triggers warm-up work.
+    p.add_argument("--timeout", type=float, default=120, help="seconds per request")
     return p.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    client = OpenAI(base_url=args.base_url, api_key=args.api_key, timeout=120)
+    client = OpenAI(base_url=args.base_url, api_key=args.api_key, timeout=args.timeout)
 
     # 1. Which models does the server offer? (GET /v1/models)
     models = [m.id for m in client.models.list().data]
