@@ -1,12 +1,12 @@
 import json
 import os
-import redis.asyncio as redis
+import time
 
 import httpx
+import redis.asyncio as redis
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
-import time
 
 load_dotenv()
 
@@ -19,22 +19,22 @@ RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "5"))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 redis_client = redis.from_url(REDIS_URL)
 app = FastAPI(title="Forge Gateway")
-WINDOWS: dict[str, tuple[int,int]] = {}
 
-def check_rate_limit(team: str) -> None:
+
+async def check_rate_limit(team: str) -> None:
     now = time.time()
     current_minute = int(now // 60)
-    window, count = WINDOWS.get(team, (current_minute, 0))
-    if window != current_minute:  # a new minute started: reset
-        window, count = current_minute, 0
-    if count >= RATE_LIMIT_PER_MINUTE:
+    key = f"ratelimit:{team}:{current_minute}"
+    count = await redis_client.incr(key)
+    if count == 1:  # first request this minute: let Redis delete the key later
+        await redis_client.expire(key, 60)
+    if count > RATE_LIMIT_PER_MINUTE:
         retry_after = 60 - int(now % 60)
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded",
             headers={"Retry-After": str(retry_after)},
         )
-    WINDOWS[team] = (window, count + 1)
 
 
 def check_api_key(authorization: str | None) -> str:
@@ -69,7 +69,7 @@ def get_usage():
 @app.post("/v1/chat/completions")
 async def chat(request: Request, authorization: str | None = Header(default=None)):
     team = check_api_key(authorization)
-    check_rate_limit(team)
+    await check_rate_limit(team)
     body = await request.json()
     async with httpx.AsyncClient(timeout=120) as client:
         try:
