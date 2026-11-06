@@ -32,11 +32,6 @@ jobs:
         with:
           cluster_name: forge
           config: deploy/kind/cluster.yaml
-      - name: Pre-load the vLLM image into the cluster
-        run: |
-          IMG=$(grep -A3 '^image:' deploy/charts/vllm-pool/values.yaml | awk '/repository:/{r=$2}/tag:/{t=$2}END{print r":"t}')
-          docker pull "$IMG"
-          kind load docker-image "$IMG" --name forge
       - run: kubectl create namespace forge
       - name: Deploy
         run: make deploy
