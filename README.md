@@ -17,8 +17,8 @@ engineer moving into LLMOps.
 | Phase | What | Status |
 |---|---|---|
 | 0 | Run vLLM locally, learn the core serving concepts | ✅ [Lab 0](labs/00-first-call/) |
-| 1 | vLLM on Kubernetes: Helm chart, kind cluster, CI that serves a real model | ✅ this release |
-| 2 | FastAPI gateway: OpenAI-compatible, tenants, API keys, rate limits, token metering (Postgres + Redis) | ⏳ |
+| 1 | vLLM on Kubernetes: Helm chart, kind cluster, CI that serves a real model | ✅ |
+| 2 | FastAPI gateway: OpenAI-compatible, tenants, API keys, rate limits, token metering (Postgres + Redis) | 🚧 [gateway](gateway/) runs locally; streaming and Kubernetes deploy next |
 | 3 | Observability: TTFT/TPOT/throughput dashboards, SLOs, tracing | ⏳ |
 | 4 | Autoscaling with KEDA + GPU tuning and benchmarks on AKS | ⏳ |
 | 5 | Eval-gated releases: eval suite, load tests, Argo Rollouts canary | ⏳ |
@@ -39,15 +39,23 @@ make smoke          # call the model and print TTFT / TPOT / tokens per second
 
 The smoke test prints the served models, the answer, and three latency numbers (TTFT, TPOT, tokens/s) that are explained in [doc 00](docs/learn/00-how-llm-serving-works.md). Phase 4 publishes real GPU benchmarks.
 
+## The gateway (Phase 2)
+
+[`gateway/`](gateway/) is a FastAPI service in front of vLLM that speaks the
+OpenAI API and adds per-team API keys, a Redis-backed rate limit shared by all
+replicas, and per-request usage metering in Postgres. See the
+[gateway README](gateway/README.md) to run it locally with Docker.
+
 ## Repository layout
 
 ```
 deploy/charts/vllm-pool/   Helm chart for a pool of vLLM servers (CPU and GPU values)
 deploy/kind/               local cluster config
+gateway/                   FastAPI gateway: API keys, Redis rate limit, Postgres usage
 scripts/smoke_test.py      OpenAI-SDK smoke test with latency metrics
 labs/                      hands-on exercises, one per concept
 docs/learn/                explainers: LLM serving basics, Python for Java devs, vLLM on K8s
-.github/workflows/         CI: lint + deploy to a kind cluster and run the smoke test
+.github/workflows/         CI: lint, gateway checks, deploy to a kind cluster and run the smoke test
 ```
 
 ## Learn along
