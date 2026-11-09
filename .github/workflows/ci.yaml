@@ -14,6 +14,25 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: make lint
 
+  # Checks the Python gateway: dependencies install from the lock file,
+  # code passes lint and format, and main.py imports without crashing.
+  gateway:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install dependencies (must match uv.lock)
+        run: uv sync --locked
+      - name: Lint
+        run: uvx ruff check .
+      - name: Format
+        run: uvx ruff format --check .
+      - name: Import check (catches missing packages)
+        run: uv run python -c "import main"
+
   # Deploys the chart to a throwaway Kubernetes cluster on the CI runner,
   # loads a real (tiny) model on CPU and runs the smoke test against it.
   e2e-kind:
