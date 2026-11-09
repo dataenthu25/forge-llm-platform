@@ -15,8 +15,6 @@ load_dotenv()
 VLLM_URL = os.getenv("VLLM_URL", "http://localhost:8000")
 API_KEYS: dict[str, str] = json.loads(os.getenv("API_KEYS", "{}"))
 
-# Running totals per team. Kept in memory for now; Postgres comes later.
-USAGE: dict[str, dict[str, int]] = {}
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "5"))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 redis_client = redis.from_url(REDIS_URL)
